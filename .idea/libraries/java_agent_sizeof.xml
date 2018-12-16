@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="java-agent-sizeof">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/java-agent-sizeof.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="jar://$PROJECT_DIR$/java-agent-sizeof.jar!/" recursive="false" />
+  </library>
+</component>

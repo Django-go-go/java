@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="size_of_object (2)">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/size_of_object.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="jar://$PROJECT_DIR$/size_of_object.jar!/" recursive="false" />
+  </library>
+</component>
