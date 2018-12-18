@@ -3,9 +3,9 @@ package com.jkingone.parse_dex;
 public class DexMethodId {
 	
 	/*struct DexMethodId {
-		  u2 classIdx; // index into typeIds list for defining class
-		  u2 protoIdx; // index into protoIds for method prototype
-		  u4 nameIdx; // index into stringIds for method name
+		  ushort classIdx; // index into typeIds list for defining class
+		  ushort protoIdx; // index into protoIds for method prototype
+		  uint nameIdx; // index into stringIds for method name
 	}*/
 
 	public static final int BYTE_LEN = 2 + 2 + 4;

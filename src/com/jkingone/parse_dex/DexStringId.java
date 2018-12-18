@@ -3,7 +3,7 @@ package com.jkingone.parse_dex;
 public class DexStringId {
 
 	/*struct DexStringId {
-		u4 stringDataOff;  // file offset to string_data_item
+		uint stringDataOff;  // file offset to string_data_item
 	};*/
 	
 	public int stringDataOff;

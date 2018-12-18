@@ -2,7 +2,7 @@ package com.jkingone.parse_dex;
 
 public class DexTypeItem {
     /*struct DexTypeItem {
-        u2  typeIdx;  // index into typeIds
+        ushort  typeIdx;  // index into typeIds
     };*/
 
     public Short typeIdx;

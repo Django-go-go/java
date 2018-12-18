@@ -3,7 +3,7 @@ package com.jkingone.parse_dex;
 public class DexTypeId {
 
 	/*struct DexTypeId {
-		u4 descriptorIdx; // index into stringIds list for type descriptor
+		uint descriptorIdx; // index into stringIds list for type descriptor
 	}*/
 
 	public static final int BYTE_LEN = 4;

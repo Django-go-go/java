@@ -25,6 +25,7 @@ public class DexClassDef {
 	public String superClassName;
 	public String sourceFileName;
 	public DexTypeList interfaceData;
+	public DexClassData classData;
 
 	public static final int BYTE_LEN = 4 * 8;
 
@@ -78,6 +79,7 @@ public class DexClassDef {
 				", superClassName='" + superClassName + '\'' +
 				", sourceFileName='" + sourceFileName + '\'' +
 				", interfaceData=" + interfaceData +
+				", classData=" + classData +
 				'}';
 	}
 }

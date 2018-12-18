@@ -2,11 +2,10 @@ package com.jkingone.parse_dex;
 
 public class DexFieldId {
 
-
 	/*struct DexFieldId {
-		u2 classIdx; // index into typeIds list for defining class
-		u2 typeIdx; // index into typeIds for field type
-		u4 nameIdx; // index into stringIds for field name
+		ushort classIdx; // index into typeIds list for defining class
+		ushort typeIdx; // index into typeIds for field type
+		uint nameIdx; // index into stringIds for field name
 	}*/
 
 	public static final int BYTE_LEN = 2 + 2 + 4;

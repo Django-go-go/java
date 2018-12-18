@@ -13,7 +13,7 @@ public class DexFile {
         FileInputStream fis = null;
         ByteArrayOutputStream bos = null;
         try {
-            fis = new FileInputStream("classes.dex");
+            fis = new FileInputStream("DexDemo.dex");
             bos = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
             int len;
@@ -74,32 +74,24 @@ public class DexFile {
         System.out.println("<======================Parse DexMapList:======================>");
         dexFile.parseDexMapList(srcByte);
         System.out.println("");
-
     }
 
-    /**
-     struct DexFile {
-      DexHeader*    pHeader;
-      DexStringId*  pStringIds;
-      DexTypeId*    pTypeIds;
-      DexFieldId*   pFieldIds;
-      DexMethodId*  pMethodIds;
-      DexProtoId*   pProtoIds;
-      DexClassDef*  pClassDefs;
-     };
-     */
-
+    /*struct DexFile {
+        DexHeader*    pHeader;
+        DexStringId*  pStringIds;
+        DexTypeId*    pTypeIds;
+        DexFieldId*   pFieldIds;
+        DexMethodId*  pMethodIds;
+        DexProtoId*   pProtoIds;
+        DexClassDef*  pClassDefs;
+    };*/
     private DexHeader dexHeader = new DexHeader();
-
-    private List<DexStringId> dexStringIdsList = new ArrayList<>();
-    private List<DexTypeId> dexTypeIdsList = new ArrayList<>();
-    private List<DexProtoId> dexProtoIdsList = new ArrayList<>();
-    private List<DexFieldId> dexFieldIdsList = new ArrayList<>();
-    private List<DexMethodId> dexMethodIdsList = new ArrayList<>();
-    private List<DexClassDef> dexClassDefsList = new ArrayList<>();
-
-    private List<String> stringList = new ArrayList<>();
-
+    private List<DexStringId> dexStringIds = new ArrayList<>();
+    private List<DexTypeId> dexTypeIds = new ArrayList<>();
+    private List<DexProtoId> dexProtoIds = new ArrayList<>();
+    private List<DexFieldId> dexFieldIds = new ArrayList<>();
+    private List<DexMethodId> dexMethodIds = new ArrayList<>();
+    private List<DexClassDef> dexClassDefs = new ArrayList<>();
 
     //====================
     // 解析DexHeader
@@ -173,7 +165,7 @@ public class DexFile {
         byte[] dataOffByte = Utils.copyByte(byteSrc, 108, 4);
         dexHeader.dataOff = Utils.byteToInt(dataOffByte);
 
-        System.out.println("DexHeader:" + dexHeader);
+        System.out.println("DexHeader : " + dexHeader);
 
     }
 
@@ -187,31 +179,20 @@ public class DexFile {
             byte[] bytes = Utils.copyByte(srcByte, offset, DexStringId.BYTE_LEN);
             DexStringId item = new DexStringId();
             item.stringDataOff = Utils.byteToInt(bytes);
-
             // 第一字节是长度
-            String str = getString(srcByte, item.stringDataOff);
-//            System.out.println("len = " + srcByte[item.stringDataOff]);
-//            System.out.println("string : " + str);
-
-            if (str.contains("permission")) {
-                System.out.println(str);
+            String result;
+            try {
+                byte size = srcByte[item.stringDataOff];
+                byte[] strByte = Utils.copyByte(srcByte, item.stringDataOff + 1, size);
+                result = new String(strByte, "UTF-8");
+            } catch (Exception e) {
+                // do nothing...
+                result = "string is error : " + e;
             }
-            stringList.add(str);
-            dexStringIdsList.add(item);
+            item.stringData = result;
+            dexStringIds.add(item);
+            System.out.println("DexStringId : " + item);
         }
-        System.out.println("string size : " + dexStringIdsList.size());
-    }
-
-    private String getString(byte[] srcByte, int startOff) {
-        String result = "string is null!!!";
-        try {
-            byte size = srcByte[startOff];
-            byte[] strByte = Utils.copyByte(srcByte, startOff + 1, size);
-            result = new String(strByte, "UTF-8");
-        } catch (Exception e) {
-            // do nothing...
-        }
-        return result;
     }
 
     //====================
@@ -223,10 +204,9 @@ public class DexFile {
             DexTypeId item = new DexTypeId();
             byte[] bytes = Utils.copyByte(srcByte, dexHeader.typeIdsOff + i * DexTypeId.BYTE_LEN, DexTypeId.BYTE_LEN);
             item.descriptorIdx = Utils.byteToInt(bytes);
-            dexTypeIdsList.add(item);
-
-            // 这里的descriptorIdx就是解析之后的字符串中的索引值
-//            System.out.println("dexType string: " + stringList.get(item.descriptorIdx));
+            item.typeDescriptor = dexStringIds.get(item.descriptorIdx).stringData;
+            dexTypeIds.add(item);
+            System.out.println("DexTypeId : " + item);
         }
     }
 
@@ -236,52 +216,18 @@ public class DexFile {
 
     public void parseDexProtoId(byte[] srcByte) {
         for (int i = 0; i < dexHeader.protoIdsSize; i++) {
+            DexProtoId item = new DexProtoId();
             byte[] bytes = Utils.copyByte(srcByte, dexHeader.protoIdsOff + i * DexProtoId.BYTE_LEN, DexProtoId.BYTE_LEN);
-            DexProtoId item = parseProtoIdsItem(bytes);
-//            System.out.println("shorty descriptor : " + stringList.get(item.shortyIdx));
-//            System.out.println("return type : " + stringList.get(item.returnTypeIdx));
-            // 有的方法没有参数，这个值就是0
-            if (item.parametersOff != 0) {
-                item = parseParameterTypeList(srcByte, item.parametersOff, item);
-            }
-//            System.out.println("\n");
-            dexProtoIdsList.add(item);
+            item.shortyIdx = Utils.byteToInt(Utils.copyByte(bytes, 0, 4));
+            item.shortyDescriptor = dexStringIds.get(item.shortyIdx).stringData;
+            item.returnTypeIdx = Utils.byteToInt(Utils.copyByte(bytes, 4, 4));
+            item.returnType = dexTypeIds.get(item.returnTypeIdx).typeDescriptor;
+            item.parametersOff = Utils.byteToInt(Utils.copyByte(bytes, 8, 4));
+            // 方法没有参数，值就是0
+            item.parameterList = parseDexTypeList(srcByte, item.parametersOff);
+            dexProtoIds.add(item);
+            System.out.println("DexProtoId : " + item);
         }
-    }
-
-    private DexProtoId parseProtoIdsItem(byte[] srcByte) {
-        DexProtoId item = new DexProtoId();
-        byte[] shortyIdxByte = Utils.copyByte(srcByte, 0, 4);
-        item.shortyIdx = Utils.byteToInt(shortyIdxByte);
-        byte[] returnTypeIdxByte = Utils.copyByte(srcByte, 4, 4);
-        item.returnTypeIdx = Utils.byteToInt(returnTypeIdxByte);
-        byte[] parametersOffByte = Utils.copyByte(srcByte, 8, 4);
-        item.parametersOff = Utils.byteToInt(parametersOffByte);
-        return item;
-    }
-
-    // 解析方法的所有参数类型
-    private DexProtoId parseParameterTypeList(byte[] srcByte, int startOff, DexProtoId item) {
-        // 解析size和size大小的List中的内容
-        byte[] sizeByte = Utils.copyByte(srcByte, startOff, 4);
-        int size = Utils.byteToInt(sizeByte);
-        List<String> parametersList = new ArrayList<>();
-        List<Short> typeList = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            byte[] typeByte = Utils.copyByte(srcByte, startOff + 4 + 2 * i, 2);
-            typeList.add(Utils.byteToShort(typeByte));
-        }
-//        System.out.println("param count : " + size);
-        for (Short aTypeList : typeList) {
-//            System.out.println("type : " + stringList.get(aTypeList));
-            int index = dexTypeIdsList.get(aTypeList).descriptorIdx;
-            parametersList.add(stringList.get(index));
-        }
-
-//        item.parameterCount = size;
-//        item.parametersList = parametersList;
-
-        return item;
     }
 
     //====================
@@ -291,28 +237,16 @@ public class DexFile {
     public void parseDexFieldId(byte[] srcByte) {
         for (int i = 0; i < dexHeader.fieldIdsSize; i++) {
             byte[] bytes = Utils.copyByte(srcByte, dexHeader.fieldIdsOff + i * DexFieldId.BYTE_LEN, DexFieldId.BYTE_LEN);
-
-            DexFieldId dexFieldId = parseFieldIdsItem(bytes);
-            dexFieldIdsList.add(dexFieldId);
-
-//            int classIndex = dexTypeIdsList.get(dexFieldId.classIdx).descriptorIdx;
-//            int typeIndex = dexTypeIdsList.get(dexFieldId.typeIdx).descriptorIdx;
-//            System.out.println("defined class : " + stringList.get(classIndex));
-//            System.out.println("field name : " + stringList.get(dexFieldId.nameIdx));
-//            System.out.println("field type : " + stringList.get(typeIndex));
-//            System.out.println("");
+            DexFieldId item = new DexFieldId();
+            item.classIdx = Utils.byteToShort(Utils.copyByte(bytes, 0, 2));
+            item.fieldDefiningClass = dexTypeIds.get(item.typeIdx).typeDescriptor;
+            item.typeIdx = Utils.byteToShort(Utils.copyByte(bytes, 2, 2));
+            item.fieldType = dexTypeIds.get(item.typeIdx).typeDescriptor;
+            item.nameIdx = Utils.byteToInt(Utils.copyByte(bytes, 4, 4));
+            item.fieldName = dexStringIds.get(item.nameIdx).stringData;
+            dexFieldIds.add(item);
+            System.out.println("DexFieldId : " + item);
         }
-    }
-
-    private DexFieldId parseFieldIdsItem(byte[] srcByte) {
-        DexFieldId item = new DexFieldId();
-        byte[] classIdxByte = Utils.copyByte(srcByte, 0, 2);
-        item.classIdx = Utils.byteToShort(classIdxByte);
-        byte[] typeIdxByte = Utils.copyByte(srcByte, 2, 2);
-        item.typeIdx = Utils.byteToShort(typeIdxByte);
-        byte[] nameIdxByte = Utils.copyByte(srcByte, 4, 4);
-        item.nameIdx = Utils.byteToInt(nameIdxByte);
-        return item;
     }
 
     //====================
@@ -322,45 +256,28 @@ public class DexFile {
     public void parseDexMethodId(byte[] srcByte) {
         for (int i = 0; i < dexHeader.methodIdsSize; i++) {
             byte[] bytes = Utils.copyByte(srcByte, dexHeader.methodIdsOff + i * DexMethodId.BYTE_LEN, DexMethodId.BYTE_LEN);
-            DexMethodId dexMethodId = parseMethodIdsItem(bytes);
-            dexMethodIdsList.add(dexMethodId);
+            DexMethodId item = new DexMethodId();
+            item.classIdx = Utils.byteToShort(Utils.copyByte(bytes, 0, 2));
+            item.methodDefiningClass = dexTypeIds.get(item.classIdx).typeDescriptor;
+            item.protoIdx = Utils.byteToShort(Utils.copyByte(bytes, 2, 2));
+            item.nameIdx = Utils.byteToInt(Utils.copyByte(bytes, 4, 4));
+            item.methodName = dexStringIds.get(item.nameIdx).stringData;
+            dexMethodIds.add(item);
 
-            int classIndex = dexTypeIdsList.get(dexMethodId.classIdx).descriptorIdx;
-
-            DexProtoId dexProtoId = dexProtoIdsList.get(dexMethodId.protoIdx);
-            int returnIndex = dexProtoId.returnTypeIdx;
-            String returnTypeStr = stringList.get(dexTypeIdsList.get(returnIndex).descriptorIdx);
-            int shortIndex = dexProtoId.shortyIdx;
-            String shortStr = stringList.get(shortIndex);
-//            List<String> paramList = dexProtoId.parametersList;
-//
-//            StringBuilder parameters = new StringBuilder();
-//            parameters.append(returnTypeStr).append("(");
-//            for (String str : paramList) {
-//                parameters.append(str).append(",");
-//            }
-//            parameters.append(")").append(shortStr);
-//
-//
-//            String str = stringList.get(dexMethodId.nameIdx);
-//            if ("requestPermissions".equals(str)) {
-//                System.out.println("define class : " + stringList.get(classIndex));
-//                System.out.println("method name : " + stringList.get(dexMethodId.nameIdx));
-//                System.out.println("method prototype : " + parameters);
-//                System.out.println("");
-//            }
+            DexProtoId dexProtoId = dexProtoIds.get(item.protoIdx);
+            String returnType = dexTypeIds.get(dexProtoId.returnTypeIdx).typeDescriptor;
+            String shorty = dexStringIds.get(dexProtoId.shortyIdx).stringData;
+            if (dexProtoId.parameterList != null) {
+                StringBuilder parameters = new StringBuilder();
+                parameters.append(returnType).append("(");
+                for (DexTypeItem typeItem : dexProtoId.parameterList.dexTypeItems) {
+                    parameters.append(typeItem.typeDescriptor).append(",");
+                }
+                parameters.append(")").append(shorty);
+                item.methodPrototype = parameters.toString();
+            }
+            System.out.println("DexMethodId : " + item);
         }
-    }
-
-    private DexMethodId parseMethodIdsItem(byte[] srcByte) {
-        DexMethodId item = new DexMethodId();
-        byte[] classIdxByte = Utils.copyByte(srcByte, 0, 2);
-        item.classIdx = Utils.byteToShort(classIdxByte);
-        byte[] protoIdxByte = Utils.copyByte(srcByte, 2, 2);
-        item.protoIdx = Utils.byteToShort(protoIdxByte);
-        byte[] nameIdxByte = Utils.copyByte(srcByte, 4, 4);
-        item.nameIdx = Utils.byteToInt(nameIdxByte);
-        return item;
     }
 
     //====================
@@ -370,49 +287,25 @@ public class DexFile {
     public void parseDexClassDef(byte[] srcByte) {
         for (int i = 0; i < dexHeader.classDefsSize; i++) {
             byte[] bytes = Utils.copyByte(srcByte, dexHeader.classDefsOff + i * DexClassDef.BYTE_LEN, DexClassDef.BYTE_LEN);
-            DexClassDef dexClassDef = parseClassDefItem(bytes);
-            dexClassDefsList.add(dexClassDef);
-
-//            DexTypeId typeItem = dexTypeIdsList.get(dexClassDef.classIdx);
-//            System.out.println("class type : " + stringList.get(typeItem.descriptorIdx));
-//
-//            DexTypeId superTypeItem = dexTypeIdsList.get(dexClassDef.superclassIdx);
-//            System.out.println("superclass type : " + stringList.get(superTypeItem.descriptorIdx));
-//
-//            String sourceFile = stringList.get(dexClassDef.sourceFileIdx);
-//            System.out.println("sourceFile name : " + sourceFile);
+            DexClassDef classDef = new DexClassDef();
+            classDef.classIdx = Utils.byteToInt(Utils.copyByte(bytes, 0, 4));
+            classDef.className = dexTypeIds.get(classDef.classIdx).typeDescriptor;
+            classDef.accessFlags = Utils.byteToInt(Utils.copyByte(bytes, 4, 4));
+            classDef.superclassIdx = Utils.byteToInt(Utils.copyByte(bytes, 8, 4));
+            classDef.superClassName = dexTypeIds.get(classDef.superclassIdx).typeDescriptor;
+            // 这里如果class没有interfaces的话，这里就为0
+            classDef.interfacesOff = Utils.byteToInt(Utils.copyByte(bytes, 12, 4));
+            classDef.interfaceData = parseDexTypeList(srcByte, classDef.interfacesOff);
+            // 如果此项信息缺失，值为0xFFFFFF
+            classDef.sourceFileIdx = Utils.byteToInt(Utils.copyByte(bytes, 16, 4));
+            classDef.sourceFileName = dexStringIds.get(classDef.sourceFileIdx).stringData;
+            classDef.annotationsOff = Utils.byteToInt(Utils.copyByte(bytes, 20, 4));
+            classDef.classDataOff = Utils.byteToInt(Utils.copyByte(bytes, 24, 4));
+            classDef.classData = parseDexClassData(srcByte, classDef.classDataOff);
+            classDef.staticValueOff = Utils.byteToInt(Utils.copyByte(bytes, 28, 4));
+            dexClassDefs.add(classDef);
+            System.out.println("DexClassDef : " + classDef);
         }
-    }
-
-    private DexClassDef parseClassDefItem(byte[] srcByte) {
-        DexClassDef item = new DexClassDef();
-
-        byte[] classIdxByte = Utils.copyByte(srcByte, 0, 4);
-        item.classIdx = Utils.byteToInt(classIdxByte);
-
-        byte[] accessFlagsByte = Utils.copyByte(srcByte, 4, 4);
-        item.accessFlags = Utils.byteToInt(accessFlagsByte);
-
-        byte[] superClassIdxByte = Utils.copyByte(srcByte, 8, 4);
-        item.superclassIdx = Utils.byteToInt(superClassIdxByte);
-
-        // 这里如果class没有interfaces的话，这里就为0
-        byte[] interfacesOffByte = Utils.copyByte(srcByte, 12, 4);
-        item.interfacesOff = Utils.byteToInt(interfacesOffByte);
-
-        // 如果此项信息缺失，值为0xFFFFFF
-        byte[] sourceFileIdxByte = Utils.copyByte(srcByte, 16, 4);
-        item.sourceFileIdx = Utils.byteToInt(sourceFileIdxByte);
-
-        byte[] annotationsOffByte = Utils.copyByte(srcByte, 20, 4);
-        item.annotationsOff = Utils.byteToInt(annotationsOffByte);
-
-        byte[] classDataOffByte = Utils.copyByte(srcByte, 24, 4);
-        item.classDataOff = Utils.byteToInt(classDataOffByte);
-
-        byte[] staticValueOffByte = Utils.copyByte(srcByte, 28, 4);
-        item.staticValueOff = Utils.byteToInt(staticValueOffByte);
-        return item;
     }
 
     //====================
@@ -421,25 +314,120 @@ public class DexFile {
 
     public void parseDexMapList(byte[] srcByte) {
         DexMapList dexMapList = new DexMapList();
-        byte[] sizeByte = Utils.copyByte(srcByte, dexHeader.mapOff, 4);
-        int size = Utils.byteToInt(sizeByte);
-        for (int i = 0; i < size; i++) {
-            byte[] bytes = Utils.copyByte(srcByte, dexHeader.mapOff + 4 + i * DexMapItem.SIZE, DexMapItem.SIZE);
-            dexMapList.dexMapItems.add(parseMapItem(bytes));
+        byte[] sizeByte = Utils.copyByte(srcByte, dexHeader.mapOff, DexMapList.BYTE_LEN);
+        dexMapList.size = Utils.byteToInt(sizeByte);
+        int offset = dexHeader.mapOff + DexMapList.BYTE_LEN;
+        for (int i = 0; i < dexMapList.size; i++) {
+            byte[] bytes = Utils.copyByte(srcByte, offset + i * DexMapItem.BYTE_LEN, DexMapItem.BYTE_LEN);
+            DexMapItem item = new DexMapItem();
+            item.type = Utils.byteToShort(Utils.copyByte(bytes, 0, 2));
+            item.unused = Utils.byteToShort(Utils.copyByte(bytes, 2, 2));
+            item.size = Utils.byteToInt(Utils.copyByte(bytes, 4, 4));
+            item.offset = Utils.byteToInt(Utils.copyByte(bytes, 8, 4));
+            dexMapList.dexMapItems.add(item);
+            System.out.println("DexMapList : " + item);
         }
     }
 
-    private DexMapItem parseMapItem(byte[] srcByte) {
-        DexMapItem item = new DexMapItem();
-        byte[] typeByte = Utils.copyByte(srcByte, 0, 2);
-        item.type = Utils.byteToShort(typeByte);
-        byte[] unusedByte = Utils.copyByte(srcByte, 2, 2);
-        item.unused = Utils.byteToShort(unusedByte);
-        byte[] sizeByte = Utils.copyByte(srcByte, 4, 4);
-        item.size = Utils.byteToInt(sizeByte);
-        byte[] offsetByte = Utils.copyByte(srcByte, 8, 4);
-        item.offset = Utils.byteToInt(offsetByte);
-        return item;
+    //====================
+    // 解析DexClassData
+    //====================
+    private DexClassData parseDexClassData(byte[] srcByte, int offset) {
+        DexClassData classData = new DexClassData();
+        offset = parseDexClassDataHeader(classData.header, srcByte, offset);
+        offset = parseDexField(classData.staticFields, classData.header.staticFieldsSize, srcByte, offset);
+        offset = parseDexField(classData.instanceFields, classData.header.instanceFieldsSize, srcByte, offset);
+        offset = parseDexMethod(classData.directMethods, classData.header.directMethodsSize, srcByte, offset);
+        parseDexMethod(classData.virtualMethods, classData.header.virtualMethodsSize, srcByte, offset);
+        return classData;
     }
 
+    private int parseDexClassDataHeader(DexClassData.DexClassDataHeader header, byte[] srcByte, int offset) {
+        for (int i = 0; i < 4; i++) {
+            byte[] bytes = Utils.readULeb128(srcByte, offset);
+            offset += bytes.length;
+            int size = Utils.decodeULeb128(bytes);
+            if (i == 0) {
+                header.staticFieldsSize = size;
+            } else if (i == 1) {
+                header.instanceFieldsSize = size;
+            } else if (i == 2) {
+                header.directMethodsSize = size;
+            } else {
+                header.virtualMethodsSize = size;
+            }
+        }
+        return offset;
+    }
+
+    private int parseDexField(List<DexField> dexFields, int fieldSize, byte[] srcByte, int offset) {
+        for (int i = 0; i < fieldSize; i++) {
+            DexField dexField = new DexField();
+            byte[] bytes = Utils.readULeb128(srcByte, offset);
+            offset += bytes.length;
+            dexField.filedIdx = Utils.decodeULeb128(bytes);
+            dexField.dexFieldId = dexFieldIds.get(dexField.filedIdx);
+            bytes = Utils.readULeb128(srcByte, offset);
+            offset += bytes.length;
+            dexField.accessFlags = Utils.decodeULeb128(bytes);
+            dexFields.add(dexField);
+        }
+        return offset;
+    }
+
+    private int parseDexMethod(List<DexMethod> dexMethods, int methodSize, byte[] srcByte, int offset) {
+        for (int i = 0; i < methodSize; i++) {
+            DexMethod dexMethod = new DexMethod();
+            byte[] bytes = Utils.readULeb128(srcByte, offset);
+            offset += bytes.length;
+            dexMethod.methodIdx = Utils.decodeULeb128(bytes);
+            dexMethod.dexMethodId = dexMethodIds.get(dexMethod.methodIdx);
+            bytes = Utils.readULeb128(srcByte, offset);
+            offset += bytes.length;
+            dexMethod.accessFlags = Utils.decodeULeb128(bytes);
+            bytes = Utils.readULeb128(srcByte, offset);
+            offset += bytes.length;
+            dexMethod.codeOff = Utils.decodeULeb128(bytes);
+            parseDexCode(dexMethod, srcByte, dexMethod.codeOff);
+            dexMethods.add(dexMethod);
+        }
+        return offset;
+    }
+
+    private void parseDexCode(DexMethod dexMethod, byte[] srcByte, int offset) {
+        DexCode dexCode = new DexCode();
+        byte[] bytes = Utils.copyByte(srcByte, offset, DexCode.BYTE_LEN);
+        dexCode.registersSize = Utils.byteToShort(Utils.copyByte(bytes, 0, 2));
+        dexCode.insSize = Utils.byteToShort(Utils.copyByte(bytes, 2, 2));
+        dexCode.outsSize = Utils.byteToShort(Utils.copyByte(bytes, 4, 2));
+        dexCode.triesSize = Utils.byteToShort(Utils.copyByte(bytes, 6, 2));
+        dexCode.debugInfoOff = Utils.byteToInt(Utils.copyByte(bytes, 8, 4));
+        dexCode.insnsSize = Utils.byteToInt(Utils.copyByte(bytes, 12, 4));
+        dexMethod.dexCode = dexCode;
+    }
+
+    //====================
+    // 解析DexTypeList
+    //====================
+
+    private DexTypeList parseDexTypeList(byte[] srcByte, int offset) {
+        if (offset != 0) {
+            DexTypeList dexTypeList = new DexTypeList();
+            // 解析size和size大小的List中的内容
+            dexTypeList.size = Utils.byteToInt(Utils.copyByte(srcByte, offset, DexTypeList.BYTE_LEN));
+            offset += DexTypeList.BYTE_LEN;
+            for (int j = 0; j < dexTypeList.size; j++) {
+                DexTypeItem dexTypeItem = new DexTypeItem();
+                byte[] typeByte = Utils.copyByte(srcByte,
+                        offset + DexTypeItem.BYTE_LEN * j, DexTypeItem.BYTE_LEN);
+                Short typeId = Utils.byteToShort(typeByte);
+                dexTypeItem.typeIdx = typeId;
+                dexTypeItem.typeDescriptor = dexTypeIds.get(typeId).typeDescriptor;
+                dexTypeList.dexTypeItems.add(dexTypeItem);
+            }
+            return dexTypeList;
+        }
+        return null;
+    }
 }
+

@@ -1,12 +1,7 @@
 package com.jkingone.parse_dex;
 
-import com.jkingone.parse_dex.Utils;
-
 public class DexHeader {
-
-	/**
-	 * data header_item
-		{
+	/*struct DexHeader {
 		ubyte[8] magic; // dex 版本标识
 		uint checksum; // adler32 检验
 		ubyte[20] signature; // SHA-1 哈希值，20个字节
@@ -28,8 +23,7 @@ public class DexHeader {
 		uint classDefsOff;
 		uint dataSize;
 		uint dataOff;
-		}
-	 */
+	}*/
 	public byte[] magic = new byte[8];
 	public int checksum;
 	public byte[] signature = new byte[20];
@@ -63,22 +57,22 @@ public class DexHeader {
                 + "headerSize:" + headerSize + "\n"
                 + "endianTag: " + endianTag + "\n"
                 + "linkSize: " + linkSize + "\n"
-                + "linkOff: " + linkOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(linkOff)) + "\n"
-                + "mapOff: " + mapOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(mapOff)) + "\n"
+                + "linkOff: " + linkOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(linkOff)) + "\n"
+                + "mapOff: " + mapOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(mapOff)) + "\n"
                 + "stringIdsSize: " + stringIdsSize + "\n"
-                + "stringIdsOff: " + stringIdsOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(stringIdsOff)) + "\n"
+                + "stringIdsOff: " + stringIdsOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(stringIdsOff)) + "\n"
                 + "typeIdsSize: " + typeIdsSize + "\n"
-                + "typeIdsOff: " + typeIdsOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(typeIdsOff)) + "\n"
+                + "typeIdsOff: " + typeIdsOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(typeIdsOff)) + "\n"
                 + "protoIdsSize: " + protoIdsSize + "\n"
-                + "protoIdsOff: " + protoIdsOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(protoIdsOff)) + "\n"
+                + "protoIdsOff: " + protoIdsOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(protoIdsOff)) + "\n"
                 + "fieldIdsSize: " + fieldIdsSize + "\n"
-                + "fieldIdsOff: " + fieldIdsOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(fieldIdsOff)) + "\n"
+                + "fieldIdsOff: " + fieldIdsOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(fieldIdsOff)) + "\n"
                 + "methodIdsSize: " + methodIdsSize + "\n"
-                + "methodIdsOff: " + methodIdsOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(methodIdsOff)) + "\n"
+                + "methodIdsOff: " + methodIdsOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(methodIdsOff)) + "\n"
                 + "classDefsSize: " + classDefsSize + "\n"
-                + "classDefsOff: " + classDefsOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(classDefsOff)) + "\n"
+                + "classDefsOff: " + classDefsOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(classDefsOff)) + "\n"
                 + "dataSize: " + dataSize + "\n"
-                + "dataOff: " + dataOff + " ==> " + Utils.bytesToHexString(Utils.int2ToByte(dataOff));
+                + "dataOff: " + dataOff + " ==> " + Utils.bytesToHexString(Utils.intToByte(dataOff));
 	}
 
 }
